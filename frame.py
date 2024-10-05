@@ -1,6 +1,7 @@
 from ant import Ant
 from text_previewer import TextPreviewer
 from keyboard import Keyboard
+import constants as c
 
 class Frame:
     def __init__(self, game):
@@ -32,6 +33,11 @@ class LevelFrame(Frame):
         ]
         self.targets = []
 
+        self.state = c.PLAYER_TURN
+        self.damage_word = ""
+        self.since_damage_instance = 0
+        self.particles = []
+
     def update(self, dt, events):
         super().update(dt, events)
         self.text_previewer.update(dt, events)
@@ -42,33 +48,51 @@ class LevelFrame(Frame):
             target.update(dt, events)
             if target.destroyed:
                 self.targets.remove(target)
+        for particle in self.particles[:]:
+            particle.update(dt, events)
+            if particle.destroyed:
+                self.particles.remove(particle)
+
+        if self.state == c.DAMAGE:
+            self.since_damage_instance += dt
+            if self.since_damage_instance > 0.2 and self.damage_word:
+                self.keyboard.process_word(self.damage_word[0])
+                self.damage_word = self.damage_word[1:]
+                self.since_damage_instance = 0
+            if not self.damage_word and self.since_damage_instance > 0.5:
+                self.ant_turn()
+
 
     def draw(self, surface, offset=(0, 0)):
         surface.fill((0, 0, 0))
         self.text_previewer.draw(surface, offset)
         self.keyboard.draw(surface, offset)
+        for particle in self.particles:
+            particle.draw(surface, offset)
         for ant in self.ants:
             ant.draw(surface, offset)
         for target in self.targets:
             target.draw(surface, offset)
+        self.keyboard.draw_late(surface, offset)
 
     def on_word_submission(self):
+        self.state = c.DAMAGE
         self.lock_player_input(True)
         self.do_damage()
-        self.reset_word()
-        self.ant_turn()
-        self.lock_player_input(False)
+
 
     def lock_player_input(self, locked):
         self.text_previewer.active = not locked
 
     def do_damage(self):
-        self.keyboard.process_word(self.text_previewer.current_string)
+        self.damage_word = self.text_previewer.current_string
+        self.since_damage_instance = 0
 
     def reset_word(self):
         self.text_previewer.reset_word()
 
     def ant_turn(self):
+        self.reset_word()
         for ant in self.ants:
             ant.advance()
         self.ants += [
@@ -77,5 +101,7 @@ class LevelFrame(Frame):
             Ant(self.keyboard, self.keyboard.random_vertical_path()),
             Ant(self.keyboard, self.keyboard.random_vertical_path()),
         ]
+        self.lock_player_input(False)
+        self.state = c.PLAYER_TURN
 
 

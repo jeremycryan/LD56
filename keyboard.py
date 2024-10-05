@@ -1,7 +1,10 @@
+from image_manager import ImageManager
+from particle import Poof
 from primitives import Pose
 import constants as c
 import pygame
 import random
+import math
 
 from target import Target
 
@@ -13,14 +16,14 @@ class Keyboard:
         self.position = Pose(position)
         self.keys = []
         self.letter_to_key = {}
-        x0 = 50
-        y = 150
-        x_spacing = 50
-        y_spacing = 50
+        x0 = 103
+        y = 180
+        x_spacing = 44
+        y_spacing = 44
         for row in c.QWERTY_LAYOUT:
             x = x0
             for letter in row:
-                key = Key(letter, (x, y))
+                key = Key(letter, (x, y), frame)
                 self.keys.append(key)
                 self.letter_to_key[letter] = key
                 x += x_spacing
@@ -47,6 +50,9 @@ class Keyboard:
         self.target_string = ""
         self.targets = {}
 
+        self.outside_sprite = ImageManager.load("assets/images/outside_keyboard.png")
+        self.inside_sprite = ImageManager.load("assets/images/inside_keyboard.png")
+
     def random_horizontal_path(self):
         path = random.choice(self.horizontal_paths)
         if (random.random() < 0.5):
@@ -66,14 +72,37 @@ class Keyboard:
     def draw(self, surface, offset=(0, 0)):
         xo = offset[0] + self.position.x
         yo = offset[1] + self.position.y
+        surface.blit(self.inside_sprite, (xo, yo))
+        surface.blit(self.outside_sprite, (xo, yo))
         for key in self.keys:
             key.draw(surface, offset=(xo, yo))
+
+    def draw_late(self, surface, offset=(0, 0)):
+        xo = offset[0] + self.position.x
+        yo = offset[1] + self.position.y
+        surface.blit(self.outside_sprite, (xo, yo))
 
     def calculate_path_termination_position(self, path, start=True):
         a = path[0] if start else path[-1]
         b = path[1] if start else path[-2]
         diff = self.letter_to_key[a].position - self.letter_to_key[b].position
         return self.letter_to_key[a].position + diff
+
+    def calculate_direction_from_path(self, path):
+        if path in self.horizontal_paths:
+            return c.RIGHT
+        if path in self.vertical_paths_left:
+            return c.UP_LEFT
+        if path in self.vertical_paths_right:
+            return c.UP_RIGHT
+        path = path[::-1]
+        if path in self.horizontal_paths:
+            return c.LEFT
+        if path in self.vertical_paths_left:
+            return c.DOWN_RIGHT
+        if path in self.vertical_paths_right:
+            return c.DOWN_LEFT
+        raise
 
     def update_targets(self, new_string):
         old_string = self.target_string
@@ -103,12 +132,15 @@ class Keyboard:
 
 class Key:
 
-    def __init__(self, letter, position):
+    def __init__(self, letter, position, frame):
         self.letter = letter
         self.position = Pose(position)
         self.container = []
-        self.font = pygame.sysfont.SysFont("monospace", 20)
-        self.letter_surface = self.font.render(self.letter, True, (0, 255, 0))
+        self.font = pygame.sysfont.SysFont("monospace", 18, bold=True)
+        self.letter_surface = self.font.render(self.letter, False, (128, 128, 128))
+        self.count = 0
+        self.backplate = ImageManager.load("assets/images/key_outline.png")
+        self.frame = frame
 
     def add(self, ant):
         if ant:
@@ -124,14 +156,34 @@ class Key:
         x = self.position.x + offset[0]
         y = self.position.y + offset[1]
 
-        pygame.draw.rect(surface, (100, 100, 100), (x - 20, y - 20, 40, 40))
+        surface.blit(self.backplate, (x - self.backplate.get_width()//2, y - self.backplate.get_height()//2))
         surface.blit(self.letter_surface, (x - self.letter_surface.get_width()//2 - 10, y - self.letter_surface.get_height()//2 - 10))
 
     def update(self, dt, events):
-        pass
+        if self.count != len(self.container):
+            self.count = len(self.container)
+        self.assign_target_positions()
 
     def squash(self):
         for ant in self.container[:]:
             ant.get_squashed()
             if ant.dead:
                 self.container.remove(ant)
+        for i in range(20):
+            self.frame.particles.append(Poof(self.position.get_position()))
+
+    def assign_target_positions(self):
+        if len(self.container) == 1:
+            self.container[0].set_target_position(self.position)
+            return
+        if not self.container:
+            return
+        angle = -60
+        spacing = 360/len(self.container)
+        distance_from_center = 12
+        for ant in self.container:
+            rads = angle/180*math.pi
+            x = math.cos(rads)*distance_from_center
+            y = math.sin(rads)*distance_from_center
+            ant.set_target_position(self.position + Pose((x, y)))
+            angle -= spacing
