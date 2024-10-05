@@ -5,6 +5,7 @@ import frame as f
 import sys
 from sound_manager import SoundManager
 from image_manager import ImageManager
+from word_manager import WordManager
 import asyncio
 
 
@@ -13,7 +14,9 @@ class Game:
         pygame.init()
         SoundManager.init()
         ImageManager.init()
-        self.screen = pygame.display.set_mode(c.WINDOW_SIZE)
+        WordManager.init()
+        self.small_screen = pygame.Surface(c.WINDOW_SIZE)
+        self.screen = pygame.display.set_mode(c.SCALED_WINDOW_SIZE)
         pygame.display.set_caption(c.CAPTION)
         self.clock = pygame.time.Clock()
         pygame.mixer.init()
@@ -21,7 +24,7 @@ class Game:
         self.main()
 
     def main(self):
-        current_frame = f.Frame(self)
+        current_frame = f.LevelFrame(self)
         current_frame.load()
         self.clock.tick(60)
 
@@ -33,7 +36,9 @@ class Game:
             if dt > 0.05:
                 dt = 0.05
             current_frame.update(dt, events)
-            current_frame.draw(self.screen, (0, 0))
+            current_frame.draw(self.small_screen, (0, 0))
+            scaled = pygame.transform.scale(self.small_screen, c.SCALED_WINDOW_SIZE)
+            self.screen.blit(scaled, (0, 0))
             pygame.display.flip()
 
             if current_frame.done:
