@@ -17,7 +17,7 @@ class Keyboard:
         self.keys = []
         self.letter_to_key = {}
         x0 = 103
-        y = 180
+        y = 164
         x_spacing = 44
         y_spacing = 44
         for row in c.QWERTY_LAYOUT:
@@ -81,6 +81,8 @@ class Keyboard:
         xo = offset[0] + self.position.x
         yo = offset[1] + self.position.y
         surface.blit(self.outside_sprite, (xo, yo))
+        for key in self.keys:
+            key.draw_late(surface, offset)
 
     def calculate_path_termination_position(self, path, start=True):
         a = path[0] if start else path[-1]
@@ -140,7 +142,16 @@ class Key:
         self.letter_surface = self.font.render(self.letter, False, (128, 128, 128))
         self.count = 0
         self.backplate = ImageManager.load("assets/images/key_outline.png")
+        self.fill = ImageManager.load_copy("assets/images/key_full.png")
+        self.fill.blit(self.letter_surface, (self.fill.get_width()//2 - self.letter_surface.get_width()//2 - 10, self.fill.get_height()//2 - self.letter_surface.get_height()//2 - 10))
+        self.fill.set_colorkey((255, 0, 0))
         self.frame = frame
+
+        self.since_squish = 999
+        self.bomb = ImageManager.load("assets/images/cherry_bomb.png")
+        self.bomb.set_colorkey((255, 255, 255))
+
+        self.explosive = False
 
     def add(self, ant):
         if ant:
@@ -159,12 +170,32 @@ class Key:
         surface.blit(self.backplate, (x - self.backplate.get_width()//2, y - self.backplate.get_height()//2))
         surface.blit(self.letter_surface, (x - self.letter_surface.get_width()//2 - 10, y - self.letter_surface.get_height()//2 - 10))
 
+        if (self.explosive):
+            surface.blit(self.bomb, (x - self.bomb.get_width()//2, y - self.bomb.get_height()//2), special_flags=pygame.BLEND_MULT)
+
+
+
+    def draw_late(self, surface, offset=(0, 0)):
+        x = self.position.x + offset[0]
+        y = self.position.y + offset[1]
+
+        alpha = 255 - 512 * self.since_squish
+        if alpha < 0:
+            alpha = 0
+        self.fill.set_alpha(alpha)
+
+        if self.since_squish < 0.5:
+            surface.blit(self.fill, (x - self.fill.get_width()//2, y - self.fill.get_height()//2))
+
     def update(self, dt, events):
         if self.count != len(self.container):
             self.count = len(self.container)
         self.assign_target_positions()
 
-    def squash(self):
+        self.since_squish += dt
+
+
+    def squash(self, avoid_recursion = False):
         for ant in self.container[:]:
             ant.get_squashed()
             if ant.dead:
@@ -172,7 +203,45 @@ class Key:
         for i in range(20):
             self.frame.particles.append(Poof(self.position.get_position()))
 
+        if not avoid_recursion:
+            self.frame.game.shake(5)
+
+        self.since_squish = 0
+
+        if not avoid_recursion and self.explosive:
+            column = -1
+            row = -1
+            for i, row_contents in enumerate(c.QWERTY_LAYOUT):
+                if self.letter in row_contents:
+                    row = i
+                    column = row_contents.index(self.letter)
+
+            neighboring_letters = [self.letter]
+
+            # LR neighbors
+            if column > 0:
+                neighboring_letters += [c.QWERTY_LAYOUT[row][column - 1]]
+            if column < len(c.QWERTY_LAYOUT[row]) - 1:
+                neighboring_letters += [c.QWERTY_LAYOUT[row][column + 1]]
+
+            # UDL neighbors
+            if row > 0:
+                neighboring_letters += [c.QWERTY_LAYOUT[row - 1][column]]
+            if row < 2 and self.letter not in "LKP":
+                neighboring_letters += [c.QWERTY_LAYOUT[row + 1][column]]
+
+            # UDR neighbors
+            if row > 0:
+                neighboring_letters += [c.QWERTY_LAYOUT[row - 1][column + 1]]
+            if row < 2 and self.letter not in "QAL":
+                neighboring_letters += [c.QWERTY_LAYOUT[row + 1][column - 1]]
+
+            for other_letter in neighboring_letters:
+                other_key = self.frame.keyboard.letter_to_key[other_letter]
+                other_key.squash(True)
+
     def assign_target_positions(self):
+        self.container.sort(key = (lambda x: 1 if x.is_invulnerable() else 0))
         if len(self.container) == 1:
             self.container[0].set_target_position(self.position)
             return

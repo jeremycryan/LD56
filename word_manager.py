@@ -6,7 +6,7 @@ class WordManager:
         with open("assets/words_alpha.txt") as f:
             while line := f.readline():
                 line = line.strip().upper()
-                if len(line) < 2:
+                if len(line) < 1:
                     continue
                 if len(line) > 15:
                     continue

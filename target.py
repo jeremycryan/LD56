@@ -18,20 +18,27 @@ class Target:
         self.scale = Target.START_SCALE
 
         self.position = Pose(position)
-        self.width = 50
+        self.width = 80
 
         self.destroyed = False
+        self.dismissing = False
 
     def update(self, dt, events):
-        if (self.alpha < self.target_alpha):
+        if (self.alpha < self.target_alpha) and not self.dismissing:
             self.alpha += dt*1500
             if self.alpha > self.target_alpha:
                 self.alpha = self.target_alpha
 
-        if self.scale > self.target_scale:
+        if self.scale > self.target_scale and not self.dismissing:
             self.scale -= dt * 6
             if self.scale < self.target_scale:
                 self.scale = self.target_scale
+
+        if self.dismissing:
+            self.scale -= dt * 2
+            self.alpha -= 2500 * dt
+            if self.alpha < 0 or self.scale < 0:
+                self.destroyed = True
 
     def draw(self, surface, offset=(0, 0)):
         scaled = pygame.transform.scale(self.sprite, (int(self.width * self.scale), int(self.width * self.scale)))
@@ -41,11 +48,10 @@ class Target:
         surface.blit(scaled, (x, y))
 
     def dismiss(self):
-        self.alpha = 0
-        self.destroyed = True
+        self.dismissing = True
 
     def update_intensity(self, new_val):
         if new_val == self.intensity:
             return
-        self.scale = max(self.scale, 1.2)
+        self.scale = max(self.scale, 1.3)
         self.intensity = new_val

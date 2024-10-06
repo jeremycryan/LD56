@@ -26,3 +26,33 @@ DOWN_RIGHT = 5
 PLAYER_TURN = 0
 DAMAGE = 1
 ANT_TURN = 2
+
+UPGRADES = [
+    ("Quartz Sphinx", "Rare letter multiplier is increased to 400%."),
+    ("Vocab", "Words can be up to 7 letters."),
+    ("Vocab 2", "Words can be up to 10 letters"),
+    ("K-Bomb", "The K key explodes when you press it."),
+    ("S-Bomb", "The S key explodes when you press it."),
+    ("H-Bomb", "No, not that kind. You know the drill."),
+    ("F-Bomb", "You saw this one coming."),
+    ("Speedy", "Max speed multiplier is increased to 250%."),
+    ("Speedy 2", "Max speed multiplier is increased to 300%."),
+    ("Double Tap", "Hitting an ant you just killed gives bonus points."),
+    ("Double Tap 2", "Double tap bonus increased to 200."),
+    ("Coffee", "Drink a delicious cup of coffee."),
+    # ("Big Word Bad", "Word with four or less go boom."),
+]
+
+DEPENDENCIES = {
+    "Vocab 2": ("Vocab",),
+    "F-Bomb": ("H-Bomb",),
+    "H-Bomb": ("S-Bomb",),
+    "S-Bomb": ("K-Bomb",),
+    "Speedy 2": ("Speedy",),
+    "Double Tap 2": ("Double Tap",),
+    "Coffee": ("K-Bomb", "Vocab", "Speedy", "Double Tap"),
+}
+
+LETTERS = {
+    1: "Dearest employer,\n\nRegarding the sales report due earlier today,\n\n"
+}

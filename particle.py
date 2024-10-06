@@ -81,3 +81,44 @@ class Splat(Particle):
         x = self.position.x + offset[0]
         y = self.position.y + offset[1]
         surf.blit(self.sprite, (x - self.sprite.get_width()//2, y - self.sprite.get_height()//2))
+
+
+class TextToast(Particle):
+
+    FONTS = {}
+
+    def __init__(self, position, text, color = (255, 255, 255), font_size = 20):
+        super().__init__(position, (0, -50), 0.8)
+
+        if font_size not in TextToast.FONTS:
+            TextToast.FONTS[font_size] = pygame.font.Font("assets/fonts/a_goblin_appears.ttf", font_size)
+
+        self.surface = pygame.Surface((150, 50))
+        self.surface.fill((255, 0, 0))
+        self.surface.set_colorkey((255, 0, 0))
+        black_text = TextToast.FONTS[font_size].render(text, 0, (0, 0, 0))
+        for offset in [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 3)]:
+            x = self.surface.get_width()//2 - black_text.get_width()//2
+            y = self.surface.get_height()//2 - black_text.get_height()//2
+            self.surface.blit(black_text, (x + offset[0], y + offset[1]))
+        self.surface.blit(TextToast.FONTS[font_size].render(text, 0, (color)), (self.surface.get_width()//2 - black_text.get_width()//2, self.surface.get_height()//2 - black_text.get_height()//2))
+        self.layer = 2
+
+
+    def get_scale(self):
+        return 0.7 + 0.3*self.through()
+
+    def get_alpha(self):
+        return 255 - 255 * self.through()**2
+
+    def update(self, dt, events):
+        super().update(dt, events)
+        self.velocity *= 0.1**dt
+
+    def draw(self, surface, offset=(0, 0)):
+
+        my_surf = self.surface  #my_surf = pygame.transform.scale(self.surface, (int(self.surface.get_width() * self.get_scale()), int(self.surface.get_height() * self.get_scale())))
+        my_surf.set_alpha(self.get_alpha())
+        x = offset[0] + self.position.x
+        y = offset[1] + self.position.y
+        surface.blit(my_surf, (x - my_surf.get_width()//2, y - my_surf.get_height()//2))
