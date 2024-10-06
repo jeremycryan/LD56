@@ -21,15 +21,14 @@ class Game:
         WordManager.init()
         self.small_screen = pygame.Surface(c.WINDOW_SIZE)
         self.screen = pygame.display.set_mode(c.SCALED_WINDOW_SIZE)
-        pygame.display.set_caption(c.CAPTION)
         self.clock = pygame.time.Clock()
         pygame.mixer.init()
 
         self.shake_amp = 0
         self.since_shake = 999
-        self.score = 0
-        self.level = 1
-        self.total_words = []
+        self.reset()
+
+        pygame.display.set_caption(f"{c.CAPTION}")
 
         self.main()
 
@@ -39,15 +38,20 @@ class Game:
 
 
     def get_shake_offset(self):
-        magnitude = math.cos(self.since_shake * 40) * self.shake_amp
+        magnitude = math.cos(self.since_shake * 60) * self.shake_amp
         direction = Pose((1, 1))
         if abs(magnitude) < 1:
             magnitude = 0
         return direction * magnitude
 
+    def reset(self):
+        self.score = 0
+        self.level = 1
+        self.total_words = []
+        self.upgrades = []
 
     def main(self):
-        current_frame = f.LevelFrame(self)
+        current_frame = f.IntroFrame(self)
         current_frame.load()
         self.clock.tick(60)
 
@@ -55,7 +59,6 @@ class Game:
             dt, events = self.get_events()
             if dt == 0:
                 dt = 1/100000
-            pygame.display.set_caption(f"{c.CAPTION} ({int(1/dt)} FPS)")
             if dt > 0.05:
                 dt = 0.05
             current_frame.update(dt, events)

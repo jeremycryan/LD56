@@ -6,6 +6,7 @@ import pygame
 import random
 import math
 
+from sound_manager import SoundManager
 from target import Target
 
 
@@ -52,6 +53,9 @@ class Keyboard:
 
         self.outside_sprite = ImageManager.load("assets/images/outside_keyboard.png")
         self.inside_sprite = ImageManager.load("assets/images/inside_keyboard.png")
+
+        self.key_punch_sfx = SoundManager.load("assets/audio/key_attack.ogg")
+        self.key_punch_sfx.set_volume(0.3)
 
     def random_horizontal_path(self):
         path = random.choice(self.horizontal_paths)
@@ -123,6 +127,7 @@ class Keyboard:
 
     def process_word(self, current_string):
         for letter in current_string:
+            self.key_punch_sfx.play()
             self.letter_to_key[letter].squash()
             if letter in self.targets:
                 target = self.targets[letter]

@@ -7,7 +7,7 @@ from particle import Splat, TextToast
 from primitives import Pose
 import constants as c
 from pyracy.sprite_tools import Sprite, Animation
-
+from sound_manager import SoundManager
 
 
 class Ant:
@@ -34,6 +34,10 @@ class Ant:
         self.protection = ImageManager.load("assets/images/protection.png")
         self.alert = ImageManager.load("assets/images/alert.png")
 
+        self.squish_sfx = [SoundManager.load(f"assets/audio/squish_{i}.ogg") for i in range(1, 5)]
+
+    def on_ant_turn(self):
+        pass
 
     def load_sprite(self):
         self.left_face = Animation(
@@ -172,14 +176,25 @@ class Ant:
         if not self.dead:
             self.dead = True
             self.keyboard.frame.particles.append(Splat(self.position.get_position()))
+            random.choice(self.squish_sfx).play()
+            self.keyboard.frame.ants_killed_this_turn += 1
         score = self.keyboard.frame.gain_score(self.base_score)
+        if (self.keyboard.frame.ants_killed_this_turn >= 3) and self.keyboard.frame.spree_level > 0:
+            if self.keyboard.frame.spree_level == 1:
+                score += 30 * (self.keyboard.frame.ants_killed_this_turn - 2)
+            if self.keyboard.frame.spree_level == 2:
+                score += 60 * (self.keyboard.frame.ants_killed_this_turn - 2)
         if (self.get_current_letter() and self.get_current_letter() in c.RARE_LETTERS):
-            score *= 2
+            score *= self.keyboard.frame.rare_letter_modifier
         self.keyboard.frame.particles.append(TextToast(self.position.get_position(), f"+{score}", (255, 255, 0)))
         bonus_position = self.position + Pose((0, 18))
         if (self.get_current_letter() and self.get_current_letter() in c.RARE_LETTERS):
             self.keyboard.frame.particles.append(
                 TextToast(bonus_position.get_position(), f"RARE LETTER", font_size=10, color=(255, 100, 255)))
+            bonus_position += Pose((0, 9))
+        if (self.keyboard.frame.ants_killed_this_turn >= 3) and self.keyboard.frame.spree_level > 0:
+            self.keyboard.frame.particles.append(
+                TextToast(bonus_position.get_position(), f"SPREE {self.keyboard.frame.ants_killed_this_turn}", font_size=10, color=(255, 180, 50)))
             bonus_position += Pose((0, 9))
 
     def set_target_position(self, pose):
@@ -224,6 +239,113 @@ class Ant:
                     return True
 
         return False
+
+
+class Persistant(Ant):
+    def __init__(self, keyboard, path, speed = 1):
+        super().__init__(keyboard, path, speed=speed)
+        self.base_score = 300
+        self.since_glitch = 0
+        self.glitch_offset = Pose((0, 0))
+        self.hp = 2
+
+    def update(self, dt, events):
+        super().update(dt, events)
+        self.since_glitch += dt*1.5
+
+        if self.since_glitch > 0.1:
+            self.since_glitch = random.random() * -0.1
+            self.glitch_offset = Pose((random.random() * 10 - 5, random.random() * 10 - 5))
+
+    def draw(self, surface, offset=(0, 0)):
+        if (self.since_glitch > 0 and self.since_glitch < 0.1) and self.hp > 1:
+            offset = (Pose(offset) + self.glitch_offset * 0.1).get_position()
+        super().draw(surface, offset)
+        if (self.since_glitch > 0 and self.since_glitch < 0.1) and self.hp > 1:
+            glitch_surf = self.sprite.get_image().copy()
+            pose = self.position + Pose(offset) + self.glitch_offset
+            x = pose.x - glitch_surf.get_width()//2
+            y = pose.y - glitch_surf.get_height()//2
+            glitch_surf.set_alpha(100)
+            if not self.dead and not self.reached_destination:
+                surface.blit(glitch_surf, (x, y))
+
+
+    def get_squashed(self):
+        super().get_squashed()
+        if not self.is_invulnerable() and self.hp > 0:
+            self.keyboard.frame.particles.append(
+                TextToast(self.position.get_position(), f"SHIELDS DOWN", font_size=10, color=(255, 80, 50)))
+
+    def on_ant_turn(self):
+        if self.hp < 2 and not self.dead and not self.reached_destination:
+            self.hp = 2
+            self.keyboard.frame.particles.append(
+                TextToast(self.position.get_position(), f"SHIELDS UP", font_size=10, color=(255, 80, 50)))
+
+    def load_sprite(self):
+        self.left_face = Animation(
+            ImageManager.load_copy("assets/images/ant_left_extra_hit.png"),
+            (3, 1),
+            3,
+        )
+        self.right_face = Animation(
+            ImageManager.load_copy("assets/images/ant_left_extra_hit.png"),
+            (3, 1),
+            3,
+            reverse_x=True,
+        )
+        self.down_left = Animation(
+            ImageManager.load_copy("assets/images/ant_dl_extra_hit.png"),
+            (3, 1),
+            3,
+        )
+        self.down_right = Animation(
+            ImageManager.load_copy("assets/images/ant_dl_extra_hit.png"),
+            (3, 1),
+            3,
+            reverse_x=True
+        )
+        self.up_left = Animation(
+            ImageManager.load_copy("assets/images/ant_ul_extra_hit.png"),
+            (3, 1),
+            3,
+        )
+        self.up_right = Animation(
+            ImageManager.load_copy("assets/images/ant_ul_extra_hit.png"),
+            (3, 1),
+            3,
+            reverse_x=True,
+        )
+        self.sprite = Sprite(6, (0, 0))
+
+
+
+        if self.direction == c.UP_LEFT:
+            self.sprite.add_animation({
+                "Idle": self.up_left,
+            }, loop=True)
+        elif self.direction == c.DOWN_LEFT:
+            self.sprite.add_animation({
+                "Idle": self.down_left,
+            }, loop=True)
+        elif self.direction == c.LEFT:
+            self.sprite.add_animation({
+                "Idle": self.left_face,
+            }, loop=True)
+        elif self.direction == c.UP_RIGHT:
+            self.sprite.add_animation({
+                "Idle": self.up_right,
+            }, loop=True)
+        elif self.direction == c.DOWN_RIGHT:
+            self.sprite.add_animation({
+                "Idle": self.down_right,
+            }, loop=True)
+        elif self.direction == c.RIGHT:
+            self.sprite.add_animation({
+                "Idle": self.right_face,
+            }, loop=True)
+        self.sprite.start_animation("Idle")
 
 
 class Defendant(Ant):

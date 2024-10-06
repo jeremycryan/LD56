@@ -6,6 +6,7 @@ import pygame
 from image_manager import ImageManager
 from primitives import Pose
 import constants as c
+from sound_manager import SoundManager
 
 
 class UpgradeShop:
@@ -19,14 +20,25 @@ class UpgradeShop:
         self.active = False
         self.choose_an_upgrade = ImageManager.load("assets/images/choose_an_upgrade.png")
 
+        self.upgrade_select_sfx = SoundManager.load("assets/audio/upgrade_select.wav")
+        self.upgrade_sfx = SoundManager.load("assets/audio/upgrade.wav")
+        self.upgrade_sfx.set_volume(0.2)
+        self.upgrade_select_sfx.set_volume(0.1)
+
 
     def populate(self):
         upgrades = self.frame.upgrades_player_could_pick()
         random.shuffle(upgrades)
+        upgrades_to_use = []
+        while len(upgrades_to_use) < 3:
+            if upgrades:
+                upgrades_to_use.append(upgrades.pop(0))
+                continue
+            upgrades_to_use.append(("Nothing", "Literally nothing!"))
         self.floppies = [
-            Floppy(upgrades.pop(0), (-200, -15)),
-            Floppy(upgrades.pop(0), (0, -50)),
-            Floppy(upgrades.pop(0), (200, -15)),
+            Floppy(upgrades_to_use[0], (-200, -15)),
+            Floppy(upgrades_to_use[1], (0, -50)),
+            Floppy(upgrades_to_use[2], (200, -15)),
         ]
         self.highlight_index = 1
         self.floppies[self.highlight_index].highlighted = True
@@ -46,11 +58,13 @@ class UpgradeShop:
                     self.highlight_index -= 1
                     self.highlight_index %= 3
                     self.floppies[self.highlight_index].highlighted = True
+                    self.upgrade_select_sfx.play()
                 if event.key == pygame.K_RIGHT:
                     self.floppies[self.highlight_index].highlighted = False
                     self.highlight_index += 1
                     self.highlight_index %= 3
                     self.floppies[self.highlight_index].highlighted = True
+                    self.upgrade_select_sfx.play()
                 if event.key == pygame.K_RETURN:
                     self.select()
 
@@ -61,6 +75,7 @@ class UpgradeShop:
             return
         self.active = False
 
+        self.upgrade_sfx.play()
         upgrade = None
         for floppy in self.floppies:
             if floppy.highlighted:

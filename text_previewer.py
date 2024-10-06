@@ -1,10 +1,12 @@
 import math
+import random
 
 import pygame
 import constants as c
 from image_manager import ImageManager
 from particle import TextToast
 from primitives import Pose
+from sound_manager import SoundManager
 from word_manager import WordManager
 
 
@@ -28,9 +30,11 @@ class TextPreviewer:
 
         self.since_time_start = 0
         self.max_time_multiplier = 2.0
-        self.timer_duration = 20
-        self.free_time = 5
+        self.timer_duration = 18
+        self.free_time = 2
         self.timer_is_empty = False
+
+        self.key_sounds = [SoundManager.load(f"assets/audio/key_{i}.ogg") for i in range(1, 5)]
 
 
     def update(self, dt, events):
@@ -41,14 +45,17 @@ class TextPreviewer:
                     if any([letter in row for row in c.QWERTY_LAYOUT]) and len(self.current_string) < self.max_word_length:
                         self.current_string += letter
                         self.on_current_string_update()
+                        random.choice(self.key_sounds).play()
                         continue
                     if event.key == pygame.K_RETURN:
                         self.submit_word()
+                        random.choice(self.key_sounds).play()
                     if event.key == pygame.K_BACKSPACE:
                         self.current_string = self.current_string[:-1]
                         self.on_current_string_update()
                         self.since_backspace_held = 0
                         self.backspace_held = True
+                        random.choice(self.key_sounds).play()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_BACKSPACE:
                         self.backspace_held = False
@@ -57,8 +64,10 @@ class TextPreviewer:
             if self.backspace_held:
                 self.since_backspace_held += dt
                 if self.since_backspace_held > 0.4:
-                    self.current_string = self.current_string[:-1]
-                    self.on_current_string_update()
+                    if self.current_string:
+                        random.choice(self.key_sounds).play()
+                        self.current_string = self.current_string[:-1]
+                        self.on_current_string_update()
                     self.since_backspace_held -= 0.04
             self.since_time_start += dt
 
