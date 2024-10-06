@@ -52,21 +52,22 @@ class UpgradeShop:
             floppy.update(dt, events)
 
         for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    self.floppies[self.highlight_index].highlighted = False
-                    self.highlight_index -= 1
-                    self.highlight_index %= 3
-                    self.floppies[self.highlight_index].highlighted = True
-                    self.upgrade_select_sfx.play()
-                if event.key == pygame.K_RIGHT:
-                    self.floppies[self.highlight_index].highlighted = False
-                    self.highlight_index += 1
-                    self.highlight_index %= 3
-                    self.floppies[self.highlight_index].highlighted = True
-                    self.upgrade_select_sfx.play()
-                if event.key == pygame.K_RETURN:
-                    self.select()
+            if self.active:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        self.floppies[self.highlight_index].highlighted = False
+                        self.highlight_index -= 1
+                        self.highlight_index %= 3
+                        self.floppies[self.highlight_index].highlighted = True
+                        self.upgrade_select_sfx.play()
+                    if event.key == pygame.K_RIGHT:
+                        self.floppies[self.highlight_index].highlighted = False
+                        self.highlight_index += 1
+                        self.highlight_index %= 3
+                        self.floppies[self.highlight_index].highlighted = True
+                        self.upgrade_select_sfx.play()
+                    if event.key == pygame.K_RETURN:
+                        self.select()
 
     def select(self):
         if self.frame.upgrade_screen_showingness < 0.99:

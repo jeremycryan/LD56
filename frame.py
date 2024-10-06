@@ -411,10 +411,10 @@ class LevelFrame(Frame):
             if not self.damage_word and self.since_damage_instance > 0.5:
                 self.ant_turn()
 
-        for event in events:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_BACKSLASH:
-                    self.show_upgrade_screen()
+        # for event in events:
+        #     if event.type == pygame.KEYDOWN:
+        #         if event.key == pygame.K_BACKSLASH:
+        #             self.show_upgrade_screen()
 
         if self.should_show_upgrade_screen:
             self.upgrade_screen_showingness += 2*dt
