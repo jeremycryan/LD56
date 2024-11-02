@@ -32,7 +32,7 @@ class Frame:
 class ScoreFrame(Frame):
     def __init__(self, game):
         super().__init__(game)
-        pygame.mixer.music.set_volume(0.25)
+        self.game.music.set_volume(0.25)
 
         self.score = game.score
         self.score_font = pygame.font.Font("assets/fonts/great_answer.ttf", 50)
@@ -108,7 +108,7 @@ class LevelReviewFrame(Frame):
         self.upgrade_sfx = SoundManager.load("assets/audio/upgrade.wav")
         self.upgrade_sfx.set_volume(0.2)
 
-        pygame.mixer.music.set_volume(0.05)
+        self.game.music.set_volume(0.05)
 
     def update(self, dt, events):
         self.time += dt
@@ -144,7 +144,7 @@ class LevelReviewFrame(Frame):
 
 
     def next_frame(self):
-        pygame.mixer.music.set_volume(0.5)
+        self.game.music.set_volume(0.5)
         if self.game.level <= 3:
             return LevelFrame(self.game)
         else:
@@ -240,9 +240,8 @@ class IntroFrame(Frame):
 
 
     def next_frame(self):
-        pygame.mixer.music.load("assets/audio/music.ogg")
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+        self.game.music.set_volume(0.5)
+        self.game.music.play(-1)
         return LevelFrame(self.game)
 
 
@@ -270,7 +269,7 @@ class LevelFrame(Frame):
 
         self.upgrades = []
         self.available_upgrades = c.UPGRADES.copy()
-        pygame.mixer.music.set_volume(0.5)
+        self.game.music.set_volume(0.5)
 
 
 
@@ -425,7 +424,7 @@ class LevelFrame(Frame):
             if self.upgrade_screen_showingness < 0:
                 self.upgrade_screen_showingness = 0
 
-        pygame.mixer.music.set_volume(0.5 - 0.43*self.upgrade_screen_showingness)
+        self.game.music.set_volume(0.5 - 0.43*self.upgrade_screen_showingness)
 
         surviving_ants = [ant for ant in self.ants if not ant.dead and not ant.reached_destination]
         if not surviving_ants and (not self.active_wave or not self.active_wave.ants) and not self.level_ending and not self.should_show_upgrade_screen:

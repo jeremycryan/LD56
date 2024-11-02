@@ -28,9 +28,12 @@ class Game:
         self.since_shake = 999
         self.reset()
 
+        self.music = SoundManager.load("assets/audio/music.ogg")
+        self.music.set_volume(0.5)
+
         pygame.display.set_caption(f"{c.CAPTION}")
 
-        self.main()
+        asyncio.run(self.main())
 
     def shake(self, amt=15):
         self.shake_amp = amt
@@ -50,7 +53,7 @@ class Game:
         self.total_words = []
         self.upgrades = []
 
-    def main(self):
+    async def main(self):
         current_frame = f.IntroFrame(self)
         current_frame.load()
         self.clock.tick(60)
@@ -66,6 +69,7 @@ class Game:
             scaled = pygame.transform.scale(self.small_screen, c.SCALED_WINDOW_SIZE)
             self.screen.blit(scaled, (0, 0))
             pygame.display.flip()
+            await asyncio.sleep(0)
 
             if current_frame.done:
                 current_frame = current_frame.next_frame()
@@ -73,7 +77,9 @@ class Game:
 
 
     def get_events(self):
+
         dt = self.clock.tick(c.FRAMERATE)/1000
+
 
         events = pygame.event.get()
         for event in events:
